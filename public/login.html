@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — حەمزە گۆڵد</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-card fade-in">
+      <div class="brand-mark">⚡</div>
+      <h1>حەمزە گۆڵد</h1>
+      <p class="subtitle">Private XAU/USD charting + indicator lab</p>
+
+      <div id="errorMsg" class="error-toast hidden"></div>
+
+      <form id="loginForm" onsubmit="return loginSubmit(event)">
+        <input type="password" id="accessCode" placeholder="4-digit PIN" required autocomplete="off" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" />
+        <button type="submit" class="btn-primary">Enter</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function loginSubmit(e) {
+      e.preventDefault();
+      const code = document.getElementById("accessCode").value.trim();
+      const errBox = document.getElementById("errorMsg");
+      errBox.classList.add("hidden");
+
+      // Strict validation — only "2115" grants access
+      if (code !== "2115") {
+        errBox.textContent = "Invalid access code.";
+        errBox.classList.remove("hidden");
+        document.getElementById("accessCode").value = "";
+        document.getElementById("accessCode").focus();
+        return false;
+      }
+
+      window.location.href = "dashboard.html";
+      return false;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — حەمزە گۆڵد</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+</head>
+<body>
+  <!-- 100 Pips Price Shift Alert Banner -->
+  <div class="pips-alert-banner hidden" id="pipsAlertBanner">
+    <div class="pips-alert-content">
+      <span class="pips-alert-icon">⚠️</span>
+      <div class="pips-alert-text">
+        <span class="pips-alert-title" id="pipsAlertTitle">PRICE SHIFT ALERT</span>
+        <span class="pips-alert-detail" id="pipsAlertDetail">Gold moved $10.00 in the last minute</span>
+      </div>
+      <button class="pips-alert-close" id="pipsAlertClose" title="Dismiss">×</button>
+    </div>
+  </div>
+
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">⚡ حەمزە گۆڵد</div>
+      <div class="sidebar-section">
+        <h3>Live Price</h3>
+        <div class="live-price-card">
+          <span class="price-value" id="livePrice">--</span>
+          <span class="price-change" id="priceChange">--</span>
+        </div>
+      </div>
+
+      <!-- Market Sessions Clock Widget -->
+      <div class="sidebar-section sessions-section">
+        <h3>🕐 Market Sessions</h3>
+        <div class="sessions-widget">
+          <div class="session-row" data-session="sydney">
+            <span class="session-dot"></span>
+            <span class="session-name">Sydney</span>
+            <span class="session-time" id="sydneyTime">--:--</span>
+            <span class="session-status" id="sydneyStatus">--</span>
+          </div>
+          <div class="session-row" data-session="tokyo">
+            <span class="session-dot"></span>
+            <span class="session-name">Tokyo</span>
+            <span class="session-time" id="tokyoTime">--:--</span>
+            <span class="session-status" id="tokyoStatus">--</span>
+          </div>
+          <div class="session-row" data-session="london">
+            <span class="session-dot"></span>
+            <span class="session-name">London</span>
+            <span class="session-time" id="londonTime">--:--</span>
+            <span class="session-status" id="londonStatus">--</span>
+          </div>
+          <div class="session-row" data-session="newyork">
+            <span class="session-dot"></span>
+            <span class="session-name">New York</span>
+            <span class="session-time" id="newyorkTime">--:--</span>
+            <span class="session-status" id="newyorkStatus">--</span>
+          </div>
+          <div class="session-overlap" id="sessionOverlap">--</div>
+        </div>
+      </div>
+
+      <div class="sidebar-section indicators-section">
+        <div class="indicators-section-head">
+          <h3>Indicators</h3>
+          <button class="ind-panel-launcher" id="openIndicatorMenu" title="Open indicators panel">
+            <span class="ind-panel-launcher-icon">ft</span>
+            <span class="ind-panel-launcher-count" id="indOnCount">0</span>
+          </button>
+        </div>
+        <div class="indicator-list" id="indicatorList">
+          <!--Loaded via JS-->
+        </div>
+        <button class="btn-secondary" id="newIndBtn">+ New Custom Indicator</button>
+      </div>
+
+      <!-- Tools Section -->
+      <div class="sidebar-section tools-section">
+        <h3>🛠 Tools</h3>
+        <div class="tools-list">
+          <!-- Market Sentiment Tool -->
+          <div class="tool-item">
+            <div class="tool-header">
+              <span class="tool-icon">📊</span>
+              <div class="tool-info">
+                <span class="tool-name">Market Sentiment</span>
+                <span class="tool-desc">Buyer / Seller ratio</span>
+              </div>
+              <button class="tool-toggle-btn" id="sentimentToggle" title="Show / Hide">
+                <span class="tool-toggle-icon">▶</span>
+              </button>
+            </div>
+
+            <!-- Sentiment Panel (collapsible) -->
+            <div class="tool-panel hidden" id="sentimentPanel">
+              <div class="sentiment-summary">
+                <div class="sentiment-gauge">
+                  <div class="gauge-track">
+                    <div class="gauge-fill" id="sentimentFill" style="width: 50%"></div>
+                  </div>
+                  <div class="gauge-labels">
+                    <span class="gauge-label-sell">SELL</span>
+                    <span class="gauge-value" id="sentimentValue">50 / 50</span>
+                    <span class="gauge-label-buy">BUY</span>
+                  </div>
+                </div>
+                <div class="sentiment-stats">
+                  <div class="stat-block">
+                    <span class="stat-label">Buyers</span>
+                    <span class="stat-value stat-buy" id="buyerCount">--</span>
+                  </div>
+                  <div class="stat-block">
+                    <span class="stat-label">Sellers</span>
+                    <span class="stat-value stat-sell" id="sellerCount">--</span>
+                  </div>
+                  <div class="stat-block">
+                    <span class="stat-label">Ratio</span>
+                    <span class="stat-value" id="sentimentRatio">--</span>
+                  </div>
+                </div>
+                <div class="sentiment-status" id="sentimentStatus">Loading...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Price Alerts Panel -->
+          <div class="price-alerts-panel hidden" id="priceAlertsPanel">
+            <div class="price-alerts-header">
+              <span class="price-alerts-title">🔔 Price Alerts</span>
+              <button class="price-alerts-clear" id="priceAlertsClearBtn">Clear All</button>
+            </div>
+            <div class="price-alerts-list" id="priceAlertsList">
+              <!-- Alert items injected via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Notes Widget -->
+      <div class="sidebar-section notes-section">
+        <h3>📝 Quick Notes</h3>
+        <div class="notes-widget">
+          <textarea id="quickNotes" class="notes-textarea" placeholder="Type your trading notes here..."></textarea>
+          <div class="notes-actions">
+            <button class="btn-ghost btn-sm" id="saveNotesBtn">Save</button>
+            <button class="btn-ghost btn-sm" id="clearNotesBtn">Clear</button>
+            <span class="notes-status" id="notesStatus"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn-ghost" id="settingsBtn">⚙ Settings</button>
+        <button class="btn-ghost" id="logoutBtn">Log out</button>
+        <span class="version">v1.0.0</span>
+      </div>
+    </aside>
+
+<!-- Main Chart Area -->
+    <main class="main">
+      <div class="topbar">
+        <h2>XAU/USD</h2>
+        <div class="chart-controls">
+          <!-- Unified Mic Button (voice assistant + TTS) -->
+          <button class="mic-btn" id="micBtn" title="Voice Assistant — click to talk, double-click to read the live status" aria-label="Voice Assistant">
+            <svg class="mic-btn-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="2" width="6" height="12" rx="3"/>
+              <path d="M5 10v2a7 7 0 0 0 14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+              <polygon points="3 14 6 11 9 11 9 16 6 16 3 19 3 14"/>
+            </svg>
+            <span class="mic-btn-label" id="micBtnLabel">Voice</span>
+            <span class="mic-btn-status" id="voiceStatus"></span>
+            <span class="voice-waveform hidden" id="voiceWaveform">
+              <span></span><span></span><span></span><span></span><span></span>
+            </span>
+          </button>
+
+          <!-- Chart Type Selector (separate group) -->
+          <div class="chart-type-group" id="chartTypeGroup">
+            <span class="control-label">Chart Type</span>
+            <button data-chart-type="candles" class="chart-type-btn active" title="Candlesticks">Candles</button>
+            <button data-chart-type="bars" class="chart-type-btn" title="OHLC Bars">Bars</button>
+            <button data-chart-type="line" class="chart-type-btn" title="Line">Line</button>
+            <button data-chart-type="area" class="chart-type-btn" title="Area">Area</button>
+            <button data-chart-type="baseline" class="chart-type-btn" title="Baseline">Baseline</button>
+            <button data-chart-type="histogram" class="chart-type-btn" title="Histogram">Histogram</button>
+          </div>
+
+          <!-- Timeframe Selector (separate group) -->
+          <div class="timeframe-group" id="timeframeGroup">
+            <span class="control-label">Timeframe</span>
+            <button data-tf="1m" class="tf-btn active">1m</button>
+            <button data-tf="5m" class="tf-btn">5m</button>
+            <button data-tf="15m" class="tf-btn">15m</button>
+            <button data-tf="1h" class="tf-btn">1h</button>
+            <button data-tf="4h" class="tf-btn">4h</button>
+            <button data-tf="1D" class="tf-btn">1D</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container" id="chartContainer">
+        <div class="chart-loading" id="chartLoading">
+          <div class="chart-loading-spinner"></div>
+          <span class="chart-loading-text">Loading data...</span>
+        </div>
+      </div>
+      <div class="chart-footer">
+        <span class="spacer"></span>
+        <span id="connectionStatus" class="status-dot status-live">● LIVE</span>
+      </div>
+
+      <!-- Draggable widget dock: Economic News, High-Impact Events, Technical Summary.
+           Drag the grip handles to reorder, use the dock bar to pin top/bottom,
+           or drag a widget onto the "Move to Bottom" zone. -->
+      <div id="widget-dock" class="widget-dock">
+        <div class="widget-dock-bar">
+          <span class="widget-dock-label"><span class="dock-grip" aria-hidden="true">⋮⋮</span> Widgets</span>
+          <div class="widget-dock-actions">
+            <button type="button" class="dock-action" id="dockPinBottom" title="Move widgets to the bottom of the page">Move to bottom</button>
+            <button type="button" class="dock-action" id="dockPinTop" title="Move widgets back to the top" hidden>Pin to top</button>
+            <button type="button" class="dock-action" id="dockReset" title="Restore the default layout">Reset layout</button>
+          </div>
+        </div>
+
+      <!-- Live Economic News / Calendar Ticker -->
+      <div class="news-ticker" id="newsTicker">
+        <div class="news-ticker-header">
+          <span class="news-ticker-icon">📰</span>
+          <span class="news-ticker-title">Economic News</span>
+        </div>
+        <div class="news-ticker-viewport">
+          <div class="news-ticker-track" id="newsTickerTrack">
+            <!-- Items injected via JS -->
+          </div>
+        </div>
+        <button class="news-ticker-toggle" id="newsTickerToggle" title="Show / Hide">
+          <span class="news-ticker-toggle-icon">▼</span>
+        </button>
+      </div>
+
+      <!-- Economic Calendar Panel (collapsible) -->
+      <div class="news-calendar hidden" id="newsCalendar">
+        <div class="news-calendar-header">
+          <span class="news-calendar-title">📅 High-Impact Events</span>
+          <span class="news-calendar-count" id="newsCalendarCount">0 events</span>
+        </div>
+        <div class="news-calendar-list" id="newsCalendarList">
+          <!-- Events injected via JS -->
+        </div>
+      </div>
+
+      <!-- Technical Indicators Summary Board -->
+      <div class="indicator-board" id="indicatorBoard">
+        <div class="indicator-board-header">
+          <span class="indicator-board-title">📈 Technical Summary</span>
+          <span class="indicator-board-tf" id="indicatorBoardTf">1m</span>
+          <button class="indicator-board-toggle" id="indicatorBoardToggle" title="Show / Hide">
+            <span class="indicator-board-toggle-icon">▼</span>
+          </button>
+        </div>
+        <div class="indicator-board-body" id="indicatorBoardBody">
+          <div class="indicator-board-grid">
+            <!-- RSI -->
+            <div class="indicator-card" data-indicator="rsi">
+              <div class="indicator-card-header">
+                <span class="indicator-card-name">RSI (14)</span>
+                <span class="indicator-card-value" id="indRsiValue">--</span>
+              </div>
+              <div class="indicator-card-bar">
+                <div class="indicator-bar-track">
+                  <div class="indicator-bar-fill" id="indRsiFill" style="width: 0%"></div>
+                </div>
+                <div class="indicator-bar-labels">
+                  <span class="bar-label-oversold">Oversold</span>
+                  <span class="bar-label-overbought">Overbought</span>
+                </div>
+              </div>
+              <div class="indicator-card-status" id="indRsiStatus">--</div>
+            </div>
+
+            <!-- MACD -->
+            <div class="indicator-card" data-indicator="macd">
+              <div class="indicator-card-header">
+                <span class="indicator-card-name">MACD (12,26,9)</span>
+                <span class="indicator-card-value" id="indMacdValue">--</span>
+              </div>
+              <div class="indicator-card-bars">
+                <div class="macd-bar macd-histogram" id="indMacdHistogram"></div>
+                <div class="macd-bar macd-signal" id="indMacdSignal"></div>
+              </div>
+              <div class="indicator-card-status" id="indMacdStatus">--</div>
+            </div>
+
+            <!-- Moving Averages -->
+            <div class="indicator-card" data-indicator="ma">
+              <div class="indicator-card-header">
+                <span class="indicator-card-name">Moving Averages</span>
+                <span class="indicator-card-value" id="indMaValue">--</span>
+              </div>
+              <div class="indicator-card-ma-list">
+                <div class="ma-row">
+                  <span class="ma-label">SMA 20</span>
+                  <span class="ma-value" id="indSma20">--</span>
+                  <span class="ma-signal" id="indSma20Signal">--</span>
+                </div>
+                <div class="ma-row">
+                  <span class="ma-label">SMA 50</span>
+                  <span class="ma-value" id="indSma50">--</span>
+                  <span class="ma-signal" id="indSma50Signal">--</span>
+                </div>
+                <div class="ma-row">
+                  <span class="ma-label">EMA 200</span>
+                  <span class="ma-value" id="indEma200">--</span>
+                  <span class="ma-signal" id="indEma200Signal">--</span>
+                </div>
+              </div>
+              <div class="indicator-card-status" id="indMaStatus">--</div>
+            </div>
+
+            <!-- Overall Signal -->
+            <div class="indicator-card indicator-card-overall" data-indicator="overall">
+              <div class="indicator-card-header">
+                <span class="indicator-card-name">Overall Signal</span>
+                <span class="indicator-card-value" id="indOverallValue">--</span>
+              </div>
+              <div class="indicator-card-gauge">
+                <div class="gauge-track">
+                  <div class="gauge-fill" id="indOverallFill" style="width: 50%"></div>
+                </div>
+                <div class="gauge-labels">
+                  <span class="gauge-label-sell">SELL</span>
+                  <span class="gauge-label-neutral">NEUTRAL</span>
+                  <span class="gauge-label-buy">BUY</span>
+                </div>
+              </div>
+              <div class="indicator-card-status" id="indOverallStatus">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div><!-- /widget-dock -->
+
+      <!-- Analytics Widgets Section — dedicated container below the chart
+           for future analytics widgets (volume profile, order flow, etc.) -->
+      <section class="analytics-section" id="analyticsSection">
+        <div class="analytics-header">
+          <span class="analytics-title">📈 Analytics</span>
+          <span class="analytics-subtitle" id="analyticsSubtitle">Widgets</span>
+          <button class="analytics-toggle" id="analyticsToggle" title="Show / Hide">
+            <span class="analytics-toggle-icon">▼</span>
+          </button>
+        </div>
+        <div class="analytics-body" id="analyticsBody">
+          <div class="analytics-grid" id="analyticsGrid">
+            <!-- Analytics widgets will be injected here dynamically -->
+            <div class="analytics-placeholder">
+              <span class="analytics-placeholder-icon">📊</span>
+              <span class="analytics-placeholder-text">Analytics widgets will appear here</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<!-- Indicators Panel — TradingView-style professional indicator menu (glassmorphism) -->
+  <div class="modal-backdrop hidden" id="indicatorMenuModal">
+    <div class="modal indicator-panel glass">
+      <div class="indicator-panel-header">
+        <div class="indicator-panel-title">
+          <span class="indicator-panel-icon">ft</span>
+          <span class="indicator-panel-heading">Indicators</span>
+        </div>
+        <button class="close-btn" id="closeIndicatorMenu" title="Close">&times;</button>
+      </div>
+
+      <!-- Search bar -- filters indicators by name/tag instantly -->
+      <div class="indicator-search">
+        <span class="indicator-search-icon">&#9906;</span>
+        <input type="text" id="indicatorSearch" placeholder="Search indicators... (e.g. RSI, MACD, Bollinger)" autocomplete="off" spellcheck="false" />
+        <button type="button" class="indicator-search-clear hidden" id="indicatorSearchClear" title="Clear">&#215;</button>
+      </div>
+
+      <!-- TradingView-style two-pane body: left category rail + right list -->
+      <div class="indicator-panel-body">
+        <!-- Left category rail -->
+        <nav class="indicator-cat-rail" aria-label="Indicator categories">
+          <button type="button" class="indicator-cat-tab active" data-cat="favs">
+            <span class="indicator-cat-tab-icon">★</span>
+            <span class="indicator-cat-tab-label">Favorites</span>
+          </button>
+          <button type="button" class="indicator-cat-tab" data-cat="builtin">
+            <span class="indicator-cat-tab-icon">▦</span>
+            <span class="indicator-cat-tab-label">Built-in</span>
+          </button>
+          <button type="button" class="indicator-cat-tab" data-cat="custom">
+            <span class="indicator-cat-tab-icon">✎</span>
+            <span class="indicator-cat-tab-label">Custom</span>
+          </button>
+        </nav>
+
+        <!-- Right content pane -->
+        <div class="indicator-panel-scroll" id="indicatorPanelScroll">
+          <!-- Favorites -->
+          <section class="indicator-cat" id="indCatFavs">
+            <h4 class="indicator-cat-title">Favorites</h4>
+            <div class="indicator-cat-list" id="indFavList">
+              <p class="indicator-empty-note">Star indicators to pin them here.</p>
+            </div>
+          </section>
+
+          <!-- Built-in / Technical Indicators -->
+          <section class="indicator-cat" id="indCatBuiltIn">
+            <h4 class="indicator-cat-title">Built-in / Technical Indicators</h4>
+            <div class="indicator-cat-list" id="indBuiltInList">
+              <!-- Rendered via JS -->
+            </div>
+          </section>
+
+          <!-- Custom / Script Indicators -->
+          <section class="indicator-cat" id="indCatCustom">
+            <h4 class="indicator-cat-title">Custom / Script Indicators</h4>
+            <div class="indicator-cat-list" id="indCustomList">
+              <p class="indicator-empty-note">No custom scripts yet. Write one with "+ New Custom Indicator".</p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <footer class="indicator-panel-footer">
+        <button type="button" class="btn-primary ind-footer-new" id="indMenuNewInd">+ New Custom Indicator</button>
+        <button type="button" class="btn-ghost" id="indMenuReset">Reset</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Modal for Editor -->
+  <div class="modal-backdrop hidden" id="editorModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Indicator Editor</h3>
+        <button class="close-btn" onclick="closeEditor()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="indicatorName" placeholder="Indicator Name" />
+        <textarea id="scriptArea"></textarea>
+        <div class="editor-actions">
+          <button class="btn-primary" onclick="saveIndicator()">Save & Apply</button>
+          <button class="btn-ghost" onclick="testIndicator()">Test only</button>
+          <button class="btn-danger" id="deleteIndBtn" onclick="deleteIndicator()">Delete</button>
+        </div>
+        <div id="previewOutput" class="preview-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-backdrop hidden" id="settingsModal">
+    <div class="modal settings-modal">
+      <div class="modal-header">
+        <h3>⚙ Settings</h3>
+        <button class="close-btn" id="closeSettingsBtn">&times;</button>
+      </div>
+      <div class="modal-body settings-body">
+        <!-- Language Selector -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-icon">🌐</span>
+            <div>
+              <span class="setting-label">Language</span>
+              <span class="setting-desc">Choose your display language</span>
+            </div>
+          </div>
+          <select id="languageSelect" class="setting-select">
+            <option value="en">English</option>
+            <option value="ckb">کوردی</option>
+            <option value="ar">العربية</option>
+          </select>
+        </div>
+
+        <!-- Theme Toggle -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-icon">🎨</span>
+            <div>
+              <span class="setting-label">Theme</span>
+              <span class="setting-desc">Switch between light and dark mode</span>
+            </div>
+          </div>
+          <label class="theme-switch">
+            <input type="checkbox" id="themeToggle" />
+            <span class="theme-slider"></span>
+          </label>
+        </div>
+
+        <!-- Sound Alerts Toggle -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-icon">🔔</span>
+            <div>
+              <span class="setting-label">Sound Alerts</span>
+              <span class="setting-desc">Play sound on buy/sell signals</span>
+            </div>
+          </div>
+          <label class="theme-switch">
+            <input type="checkbox" id="soundToggle" />
+            <span class="theme-slider"></span>
+          </label>
+        </div>
+
+        <!-- Auto-Refresh Toggle -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-icon">🔄</span>
+            <div>
+              <span class="setting-label">Auto-Refresh</span>
+              <span class="setting-desc">Automatically refresh chart data</span>
+            </div>
+          </div>
+          <label class="theme-switch">
+            <input type="checkbox" id="autoRefreshToggle" />
+            <span class="theme-slider"></span>
+          </label>
+        </div>
+
+        <!-- Chart Colors -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-icon">📊</span>
+            <div>
+              <span class="setting-label">Chart Colors</span>
+              <span class="setting-desc">Customize chart appearance</span>
+            </div>
+          </div>
+          <div class="color-picker-group">
+            <label class="color-dot" title="Up color">
+              <input type="color" id="upColor" value="#4ade80" />
+            </label>
+            <label class="color-dot" title="Down color">
+              <input type="color" id="downColor" value="#f87171" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Reset Settings -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-icon">♻️</span>
+            <div>
+              <span class="setting-label">Reset Settings</span>
+              <span class="setting-desc">Restore all settings to default</span>
+            </div>
+          </div>
+          <button class="btn-ghost btn-sm" id="resetSettingsBtn">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.io client — serves the real-time XAU/USD tick stream to the chart -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script src="datafeed.js"></script>
+  <script src="indicator-runner.js"></script>
+  <script src="chart.js"></script>
+  <script src="app.js"></script>
+
+  <!-- Voice Command Feedback Toast -->
+  <div class="voice-feedback-toast" id="voiceFeedbackToast">
+    <span class="toast-icon">🎤</span>
+    <span class="toast-text" id="voiceFeedbackText"></span>
+  </div>
+</body>
+</html>

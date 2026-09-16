@@ -1,0 +1,160 @@
+# ============================================================
+# smc_ict_system — runtime configuration
+#
+# Every value here has a sane default in src/utils.py, so the
+# engine runs with this file absent. Copy it, edit it, and point
+# SMC_CONFIG at the copy if you want a second profile.
+#
+# Secrets (DB password, Telegram token, SMTP password) do NOT
+# belong in this file. They are read from the project-root .env
+# by src/utils.py, exactly like the collectors do.
+# ============================================================
+
+# ---- Instrument ----
+instrument:
+  symbol: XAUUSD
+  yahoo_ticker: GC=F
+  quote_currency: USD
+  point_value: 1.0          # account currency per 1.00 of price per lot
+  contract_size: 100        # ounces per standard lot
+  min_lot: 0.01
+  lot_step: 0.01
+  max_lot: 100.0
+
+# ---- Timeframes ----
+# label -> (yahoo interval, default range, tf_rank, seconds)
+# tf_rank drives the hierarchical HTF/LTF filter: a setup is only
+# tradeable when the higher rank agrees with it.
+timeframes:
+  "1m":
+    yahoo_interval: "1m"
+    range: "5d"
+    tf_rank: 1
+    seconds: 60
+  "5m":
+    yahoo_interval: "5m"
+    range: "1mo"
+    tf_rank: 2
+    seconds: 300
+  "15m":
+    yahoo_interval: "15m"
+    range: "1mo"
+    tf_rank: 3
+    seconds: 900
+  "1h":
+    yahoo_interval: "60m"
+    range: "1y"
+    tf_rank: 4
+    seconds: 3600
+  "4h":
+    yahoo_interval: "60m"     # aggregated from 60m in data_loader
+    range: "1y"
+    tf_rank: 5
+    seconds: 14400
+  "1D":
+    yahoo_interval: "1d"
+    range: "5y"
+    tf_rank: 6
+    seconds: 86400
+
+# Timeframes the engine actually evaluates, cheapest first.
+active_timeframes: ["5m", "15m", "1h", "4h", "1D"]
+
+# ---- Detector tuning ----
+detectors:
+  pivot_strength: 2            # candles either side of a fractal pivot
+  equal_level_tol_pct: 0.0006  # 0.06% — "equal" highs/lows for liquidity pools
+  min_fvg_atr: 0.15            # gap must exceed this fraction of ATR(14)
+  atr_period: 14
+  displacement_atr: 1.0        # departure leg must exceed this many ATRs
+  ob_lookback: 20              # candles scanned back for the origin candle
+  sweep_lookback: 50           # candles scanned for a liquidity sweep
+  min_rr: 2.0                  # setups below this R:R are discarded
+  max_zone_age_bars: 300       # zones older than this are treated as stale
+
+# ---- Sessions / killzones (UTC) ----
+sessions:
+  asia:      { start: "00:00", end: "07:00" }
+  london:    { start: "07:00", end: "13:00" }
+  ny:        { start: "13:00", end: "21:00" }
+  overlap:   { start: "13:00", end: "16:00" }   # London + NY, highest liquidity
+  closed:    { start: "21:00", end: "00:00" }
+
+killzones:
+  asia_range:   { start: "00:00", end: "03:00" }
+  london_open:  { start: "07:00", end: "10:00" }
+  ny_am:        { start: "13:00", end: "16:00" }
+  ny_pm:        { start: "17:00", end: "20:00" }
+
+# ---- Risk management ----
+risk:
+  account_equity: 10000.0
+  risk_per_trade_pct: 0.5        # % of equity risked on one setup
+  max_daily_loss_pct: 2.0        # hard stop for the day
+  max_open_positions: 3
+  max_positions_per_direction: 2
+  max_correlated_exposure_pct: 1.5
+  min_stop_points: 1.5           # broker spread floor — never tighter
+  stop_buffer_atr: 0.25          # stop sits this far beyond the zone edge
+  target_r_multiples: [1.0, 2.0, 3.0]
+  partial_close_pct: [0.4, 0.3, 0.3]
+  breakeven_at_r: 1.0
+  trail_after_r: 1.5
+  trail_atr_multiple: 1.5
+  kelly_fraction_cap: 0.25       # never size above a quarter-Kelly
+  news_blackout_minutes: 30      # no new entries around high-impact prints
+
+# ---- Signal engine ----
+signal_engine:
+  min_conviction: 0.55           # below this the verdict is WAIT
+  min_confluence: 2              # distinct concepts that must agree
+  htf_required: true             # require the next TF up to agree
+  require_killzone: true         # no entries outside a configured killzone
+  weights:
+    structure: 0.30              # BOS / CHoCH / MSS alignment
+    zone: 0.25                   # OB / FVG quality and freshness
+    liquidity: 0.15              # sweep / stop-hunt confirmation
+    session: 0.10                # killzone timing
+    intermarket: 0.12            # DXY / yields / risk context
+    fundamental: 0.08            # macro bias overlay
+  veto:
+    stale_feed: true
+    wide_spread: true
+    news_blackout: true
+    counter_htf: true
+
+# ---- Backtester ----
+backtest:
+  initial_equity: 10000.0
+  commission_per_lot: 7.0        # round-turn, account currency
+  slippage_points: 0.20
+  spread_points: 0.30
+  max_bars_in_trade: 200
+  walk_forward_splits: 4
+  monte_carlo_runs: 1000
+  monte_carlo_confidence: 0.95
+
+# ---- Delivery ----
+delivery:
+  enabled: false                 # flip to true once credentials are set
+  channels: ["console"]          # console | file | telegram | email | webhook
+  min_conviction: 0.65           # only push setups above this
+  min_rr: 2.0
+  dedupe_minutes: 30             # suppress a repeat of the same setup
+  file:
+    path: "signals.jsonl"
+  telegram:
+    parse_mode: "HTML"
+    disable_notification: false
+  email:
+    subject_prefix: "[XAUUSD]"
+    recipients: []
+  webhook:
+    url: ""
+    timeout_seconds: 10
+
+# ---- Logging ----
+logging:
+  level: INFO
+  format: "%(asctime)s %(levelname)-7s [%(name)s] %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"

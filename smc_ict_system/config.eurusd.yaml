@@ -1,0 +1,204 @@
+# ============================================================
+# smc_ict_system — EURUSD M15 profile
+#
+# Translated from a generic SMC/ICT template into the schema
+# src/utils.py actually reads. Keys the engine has no consumer
+# for are kept under `_unmapped` at the bottom rather than
+# dropped, so nothing is lost and nothing is silently ignored.
+#
+# Activate with:  $env:SMC_CONFIG = "config.eurusd.yaml"
+# ============================================================
+
+# ---- Instrument ----
+instrument:
+  symbol: EURUSD
+  yahoo_ticker: EURUSD=X
+  quote_currency: USD
+  point_value: 1.0          # account currency per 1.00 of price per lot
+  contract_size: 100000     # units per standard lot (FX, not gold)
+  min_lot: 0.01
+  lot_step: 0.01
+  max_lot: 100.0
+
+# ---- Timeframes ----
+# label -> (yahoo interval, default range, tf_rank, seconds)
+# tf_rank drives the hierarchical HTF/LTF filter.
+timeframes:
+  "1m":
+    yahoo_interval: "1m"
+    range: "5d"
+    tf_rank: 1
+    seconds: 60
+  "5m":
+    yahoo_interval: "5m"
+    range: "1mo"
+    tf_rank: 2
+    seconds: 300
+  "15m":
+    yahoo_interval: "15m"
+    range: "60d"            # matches the template's yfinance_period
+    tf_rank: 3
+    seconds: 900
+  "1h":
+    yahoo_interval: "60m"
+    range: "1y"
+    tf_rank: 4
+    seconds: 3600
+  "4h":
+    yahoo_interval: "60m"   # aggregated from 60m in data_loader
+    range: "1y"
+    tf_rank: 5
+    seconds: 14400
+  "1D":
+    yahoo_interval: "1d"
+    range: "5y"
+    tf_rank: 6
+    seconds: 86400
+
+# The template's `timeframe: M15` plus `htf_timeframe: D1`.
+# 15m is the entry frame; 1D is the bias frame the MTF filter checks.
+active_timeframes: ["15m", "1D"]
+
+# ---- Detector tuning ----
+detectors:
+  # Template had swing_left: 3 / swing_right: 3. The detector takes a
+  # single symmetric strength, so 3 is the faithful mapping.
+  pivot_strength: 3
+  equal_level_tol_pct: 0.0006  # 0.06% — "equal" highs/lows for liquidity pools
+  min_fvg_atr: 0.15            # gap must exceed this fraction of ATR(14)
+  atr_period: 14
+  displacement_atr: 1.0        # departure leg must exceed this many ATRs
+  ob_lookback: 20              # candles scanned back for the origin candle
+  sweep_lookback: 20           # template's strategy.sweep_lookback
+  min_rr: 2.0                  # template's strategy.min_rr
+  max_zone_age_bars: 300       # zones older than this are treated as stale
+
+# ---- Sessions / killzones (UTC) ----
+sessions:
+  asia:      { start: "00:00", end: "07:00" }
+  london:    { start: "07:00", end: "13:00" }
+  ny:        { start: "13:00", end: "21:00" }
+  overlap:   { start: "13:00", end: "16:00" }   # London + NY, highest liquidity
+  closed:    { start: "21:00", end: "00:00" }
+
+# Template listed killzones as a LIST with an `enabled` flag. The engine
+# reads a DICT and treats every entry as live, so the two disabled
+# windows (asian, london_close) are omitted rather than carried as
+# dead keys. Keys are uppercased by current_killzone() on lookup.
+#
+# NOTE: `_deep_merge` merges dicts key-by-key, so a key that is absent
+# from DEFAULTS is ADDED, not substituted. Naming this `london` would
+# leave the default `london_open` (07:00-10:00) in place ahead of it in
+# iteration order, and 08:00 UTC would resolve to LONDON_OPEN. The key
+# is therefore `london_open` so it overrides the default in place.
+killzones:
+  london_open:  { start: "07:00", end: "10:00" }   # template: london, enabled
+  ny_am:        { start: "12:00", end: "15:00" }   # template: newyork, enabled
+
+# ---- Risk management ----
+risk:
+  account_equity: 10000.0        # template's risk.account_size
+  risk_per_trade_pct: 0.5        # % of equity risked on one setup
+  max_daily_loss_pct: 2.0        # hard stop for the day
+  max_open_positions: 3          # template's risk.max_open_trades
+  max_positions_per_direction: 2
+  max_correlated_exposure_pct: 1.5
+  min_stop_points: 1.5           # broker spread floor — never tighter
+  stop_buffer_atr: 0.25          # stop sits this far beyond the zone edge
+  target_r_multiples: [1.0, 2.0, 3.0]
+  partial_close_pct: [0.4, 0.3, 0.3]
+  breakeven_at_r: 1.0
+  trail_after_r: 1.5
+  trail_atr_multiple: 1.5
+  kelly_fraction_cap: 0.25       # never size above a quarter-Kelly
+  news_blackout_minutes: 30      # no new entries around high-impact prints
+
+# ---- Signal engine ----
+signal_engine:
+  # Template's strategy.min_score: 60 on a 0-100 scale -> 0.60 conviction.
+  min_conviction: 0.60
+  min_confluence: 2              # distinct concepts that must agree
+  htf_required: true             # template's strategy.require_htf_bias
+  require_killzone: true         # template's strategy.require_killzone
+  weights:
+    structure: 0.30              # BOS / CHoCH / MSS alignment
+    zone: 0.25                   # OB / FVG quality and freshness
+    liquidity: 0.15              # sweep / stop-hunt confirmation
+    session: 0.10                # killzone timing
+    intermarket: 0.12            # DXY / yields / risk context
+    fundamental: 0.08            # macro bias overlay
+  veto:
+    stale_feed: true
+    wide_spread: true
+    news_blackout: true
+    counter_htf: true
+
+# ---- Backtester ----
+backtest:
+  initial_equity: 10000.0
+  commission_per_lot: 7.0        # round-turn, account currency
+  slippage_points: 0.20
+  spread_points: 0.30
+  max_bars_in_trade: 200
+  walk_forward_splits: 4
+  monte_carlo_runs: 1000
+  monte_carlo_confidence: 0.95
+
+# ---- Delivery ----
+# Template used `console: true` + per-channel `enabled` flags. The engine
+# reads a single `channels` list, so the enabled ones are listed here.
+delivery:
+  enabled: true                  # template's delivery.file.enabled
+  channels: ["console", "file"]  # console | file | telegram | email | webhook
+  min_conviction: 0.65           # only push setups above this
+  min_rr: 2.0
+  dedupe_minutes: 30             # suppress a repeat of the same setup
+  file:
+    path: "signals.log"          # template's delivery.file.path
+  telegram:
+    parse_mode: "HTML"
+    disable_notification: false
+  email:
+    subject_prefix: "[EURUSD]"
+    recipients: []
+  webhook:
+    url: ""
+    timeout_seconds: 10
+
+# ---- Logging ----
+logging:
+  level: INFO
+  format: "%(asctime)s %(levelname)-7s [%(name)s] %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"
+
+# ============================================================
+# Unmapped template keys
+#
+# These have no consumer anywhere in smc_ict_system. They are
+# parked here so the intent is preserved and visible. Wiring any
+# of them up is a code change, not a config change.
+# ============================================================
+_unmapped:
+  data:
+    source: csv                    # no CSV loader exists; data_loader.py
+    csv_path: data/EURUSD_M15.csv  # does Yahoo + Postgres only
+    yfinance_symbol: EURUSD=X      # -> instrument.yahoo_ticker
+    yfinance_interval: 15m         # -> timeframes."15m".yahoo_interval
+    yfinance_period: 60d           # -> timeframes."15m".range
+    htf_timeframe: D1              # -> active_timeframes + htf_required
+    tz: UTC                        # engine is UTC-only by construction
+  strategy:
+    choch_lookback: 10             # no CHoCH lookback knob in smc_core
+    ote_min: 0.62                  # no OTE band in smc_core
+    ote_max: 0.79
+    require_choch: true            # no per-condition toggles; the detector
+    require_sweep: true            # always requires sweep + CHoCH
+    require_killzone: true         # killzone gating lives in signal_engine
+  delivery:
+    console: true                  # -> delivery.channels
+    telegram:
+      enabled: false               # -> delivery.channels
+      bot_token: ""                # secrets belong in .env, not YAML
+      chat_id: ""
+    webhook:
+      enabled: false               # -> delivery.channels

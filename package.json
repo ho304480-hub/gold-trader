@@ -1,0 +1,32 @@
+{
+   "name": "hamza-gold",
+   "version": "1.0.0",
+   "main": "server.js",
+   "engines": {
+      "node": ">=20.0.0"
+   },
+   "scripts": {
+      "start": "node server.js",
+      "migrate": "node migrate.js",
+      "migrate:status": "node migrate.js --status",
+      "migrate:dry": "node migrate.js --dry-run",
+      "collect": "python -m collectors.run_all",
+      "collect:check": "python -m collectors.run_all --check",
+      "collect:fred": "python -m collectors.fred_collector",
+      "collect:yahoo": "python -m collectors.yahoo_collector --all-timeframes",
+      "collect:goldapi": "python -m collectors.goldapi_collector",
+      "sources": "python -m collectors.source_manager list",
+      "sources:add": "python -m collectors.source_manager add",
+      "sources:bulk": "python -m collectors.source_manager add-bulk",
+      "sources:categories": "python -m collectors.source_manager categories"
+   },
+   "dependencies": {
+      "bcryptjs": "^3.0.3",
+      "dotenv": "^17.4.2",
+      "express": "^5.2.1",
+      "jsonwebtoken": "^9.0.3",
+      "pg": "^8.23.0",
+      "socket.io": "^4.8.1",
+      "ws": "^8.21.3"
+   }
+}

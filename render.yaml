@@ -1,0 +1,24 @@
+# Render blueprint for حەمزە گۆڵد (Hamza Gold Terminal).
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Deploy: push this repo to GitHub, then in Render choose
+#   New +  ->  Blueprint  ->  pick this repo.
+# Render reads this file and provisions the web service automatically.
+
+services:
+  - type: web
+    name: hamza-gold
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render injects PORT itself; server.js already reads process.env.PORT.
+      # Add real secrets in the Render dashboard, never in this file:
+      #   JWT_SECRET, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, FRED_API_KEY

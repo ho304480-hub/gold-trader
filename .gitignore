@@ -1,0 +1,51 @@
+# ---- Secrets ----
+.env
+.env.local
+.env.*.local
+
+# ---- Node ----
+node_modules/
+npm-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# ---- Runtime artifacts ----
+*.log
+logs/
+screenshots/
+keylog.dat
+*.pid
+
+# ---- Scratch / debug files (prefixed with underscore) ----
+_*.txt
+_*.log
+_*.cjs
+_*.js
+
+# ---- Local HTML backups / editor leftovers in public/ ----
+# hamza.html is the live dashboard; these are stale copies that must not ship.
+public/*.bak
+public/*.bak-*
+public/*.old
+public/*.corrupted
+public/*.pre-smc
+public/*.mt5-rewrite-*
+*.orig
+*.rej
+*~
+
+# ---- OS / editor ----
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حەمزە گۆڵد | Hamza Gold Live Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6">
+    <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- سەردێڕ -->
+        <header class="flex justify-between items-center border-b border-slate-800 pb-4">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center font-bold text-slate-950 text-lg shadow-lg">ح</div>
+                <div>
+                    <h1 class="text-2xl font-bold text-amber-400">حەمزە گۆڵد</h1>
+                    <p class="text-xs text-slate-400">تێرمیناڵی خێرای شیکاری زێڕ (MT5 Style)</p>
+                </div>
+            </div>
+            <div class="px-3 py-1 bg-emerald-950 text-emerald-400 text-xs rounded-full border border-emerald-800 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                بەستەری زیندوو (Live Stream)
+            </div>
+        </header>
+
+        <!-- بەشی چارتی خێرا و نرخەکان -->
+        <section class="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-sm font-semibold text-amber-400">📈 XAUUSD - Real-time Tick Data</h2>
+                <span class="text-xs text-slate-400">Connected via WebSocket</span>
+            </div>
+            
+            <div class="bg-slate-950 border border-slate-800 rounded-lg p-6 flex flex-col items-center justify-center space-y-4">
+                <!-- نرخی سەرەکی وەک MT5 -->
+                <div class="text-4xl font-extrabold text-amber-400 tracking-wider" id="priceDisplay">
+                    $2580.00
+                </div>
+                
+                <!-- نیشانە کاتییەکان -->
+                <div class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg flex justify-between items-center text-xs">
+                    <span id="signalDisplay" class="text-emerald-400 font-semibold">💡 چاوەڕوانی نیشانەی SMC...</span>
+                    <span id="timeDisplay" class="text-slate-500">کات: --:--:--</span>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // پەیوەندی بە وێبسۆکێتی سێرڤەرەوە
+        const socket = io();
+
+        socket.on('marketUpdate', (data) => {
+            document.getElementById('priceDisplay').innerText = `$${data.price}`;
+            document.getElementById('signalDisplay').innerText = `💡 نیشانە: ${data.signal}`;
+            document.getElementById('timeDisplay').innerText = `کات: ${data.time}`;
+        });
+    </script>
+</body>
+</html>

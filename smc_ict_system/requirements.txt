@@ -1,0 +1,41 @@
+# ============================================================
+# smc_ict_system — Python dependencies
+# Mirrors the collector layer's stack so the signal engine can
+# share the same Postgres/TimescaleDB instance and .env file.
+# ============================================================
+
+# --- Core numerics ---
+numpy>=1.26,<3
+pandas>=2.1,<3
+
+# --- Database (same driver the collectors use) ---
+SQLAlchemy>=2.0,<3
+psycopg2-binary>=2.9,<3
+
+# --- Config / env ---
+python-dotenv>=1.0,<2
+PyYAML>=6.0,<7
+
+# --- Data acquisition ---
+requests>=2.31,<3
+
+# --- Delivery (Telegram / SMTP) ---
+# requests covers the Telegram Bot API; smtplib is stdlib.
+# Optional: richer HTML email bodies
+Jinja2>=3.1,<4
+
+# --- Testing ---
+pytest>=8.0,<9
+
+# ============================================================
+# Optional extras — NOT imported by the current code.
+# Uncomment only if you switch the corresponding module over.
+# ============================================================
+#
+# Telegram: src/delivery.py posts to the Bot API with `requests`.
+# Swap in the async client only if you move delivery onto asyncio.
+# python-telegram-bot>=20.0,<22
+#
+# Yahoo: src/data_loader.py and collectors/yahoo_collector.py call the
+# v8 chart endpoint directly with `requests`, so no wrapper is needed.
+# yfinance>=0.2.40,<1

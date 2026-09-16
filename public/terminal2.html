@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حەمزە گۆڵد | Hamza Gold Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 relative">
+    <div class="max-w-5xl mx-auto space-y-6 pb-12">
+        
+        <!-- سەردێڕ و دوگمەی سێتینگ -->
+        <header class="flex justify-between items-center border-b border-slate-800 pb-4">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center font-bold text-slate-950 text-lg shadow-lg">ح</div>
+                <div>
+                    <h1 class="text-2xl font-bold text-amber-400">حەمزە گۆڵد</h1>
+                    <p class="text-xs text-slate-400">پلاتفۆرمی شیکاری پێشکەوتووی زێڕ و مەکروئابووری</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <div class="px-3 py-1 bg-emerald-950 text-emerald-400 text-xs rounded-full border border-emerald-800 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    سیستەم کارایە
+                </div>
+                <!-- دوگمەی سێتینگ -->
+                <button onclick="toggleSettingsModal()" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-400 px-4 py-2 rounded-xl text-sm flex items-center gap-2 transition shadow-md">
+                    ⚙️ ڕێکخستنەکان
+                </button>
+            </div>
+        </header>
+
+        <!-- 📈 بەشی چارتی زیندوو (MT5 Style) لەسەر ڕووکار -->
+        <section class="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-sm font-semibold text-amber-400">📈 XAUUSD - Live Tick Stream</h2>
+                <span class="text-xs text-slate-400">WebSocket Connected</span>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 rounded-lg p-6 flex flex-col items-center justify-center space-y-3">
+                <div class="text-4xl font-extrabold text-amber-400 tracking-wider" id="priceDisplay">$2580.00</div>
+                <div class="w-full bg-slate-900 border border-slate-800 p-3 rounded-lg flex justify-between items-center text-xs">
+                    <span id="signalDisplay" class="text-emerald-400 font-semibold">💡 نیشانەی SMC: چاوەڕوانی داتا...</span>
+                    <span id="timeDisplay" class="text-slate-500">کات: --:--:--</span>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- 🗄️ بەشی تۆمارەکان و داتابەیس و ڕاپۆرتەکانی AI -->
+        <section class="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h2 class="text-base font-semibold text-amber-300">🗄️ تۆمارەکان و داتابەیسی حەمزە گۆڵد (Database & Reports)</h2>
+                <button onclick="loadDatabaseRecords()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                    نوێکردنەوەی داتا (Refresh DB)
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs text-slate-300">
+                    <thead class="bg-slate-950 text-slate-400 border-b border-slate-800">
+                        <tr>
+                            <th class="p-3">کاتی سیستەم (Timestamp)</th>
+                            <th class="p-3">سەرچاوەی داتا (Source)</th>
+                            <th class="p-3">نرخ / داتای ماکرۆ (Value)</th>
+                            <th class="p-3">دۆخی ئاراستە (Signal)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dbTableBody" class="divide-y divide-slate-800/60">
+                        <!-- داتاکان لێرە دەردەکەون -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-800 space-y-2">
+                <h3 class="text-sm font-semibold text-slate-200">📝 دواین ڕاپۆرتی شیکاری زیرەکی دەستکرد:</h3>
+                <div class="bg-slate-950 border border-slate-800 p-4 rounded-lg text-sm text-slate-300 leading-relaxed" id="aiReportBox">
+                    📍 دۆخی ئێستای بازاڕ ئامادەیە بۆ شیکارکردن.
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+
+    <!-- ⚙️ پەنجەرەی مۆداڵی ڕێکخستنەکان (Settings Modal) -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <!-- سەری مۆداڵ -->
+            <div class="flex justify-between items-center p-5 border-b border-slate-800">
+                <h2 class="text-base font-semibold text-amber-300 flex items-center gap-2">⚙️ ڕێکخستنەکان</h2>
+                <button onclick="toggleSettingsModal()" class="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center transition">✕</button>
+            </div>
+
+            <!-- ناوەڕۆکی مۆداڵ (هەموو سێتینگەکان لێرەن) -->
+            <div class="p-6 space-y-5 overflow-y-auto">
+                
+                <!-- زمان -->
+                <div class="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <div class="text-sm font-medium text-slate-200">زمان</div>
+                        <div class="text-xs text-slate-400">زمانی نمایشی ئەپڵیکەشن</div>
+                    </div>
+                    <select class="bg-slate-900 border border-slate-800 text-xs text-slate-200 rounded-lg px-3 py-1.5 focus:outline-none">
+                        <option value="ku">کوردی</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+
+                <!-- API Provider & Settings -->
+                <div class="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl space-y-3">
+                    <div class="text-sm font-medium text-amber-400">API Configuration & Keys</div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">API Provider:</label>
+                            <select id="apiProvider" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+                                <option value="OpenAI Compatible">OpenAI Compatible</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">Base URL:</label>
+                            <input type="text" id="baseUrl" value="https://qalyx.dev/api/rxai/" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">API Key:</label>
+                        <input type="password" id="apiKey" placeholder="sk-..." class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+                    </div>
+                </div>
+
+                <!-- Sound Alerts -->
+                <div class="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <div class="text-sm font-medium text-slate-200">Sound Alerts</div>
+                        <div class="text-xs text-slate-400">Play sound on buy/sell signals</div>
+                    </div>
+                    <input type="checkbox" checked class="w-5 h-5 accent-amber-500 rounded cursor-pointer">
+                </div>
+
+                <!-- Auto-Refresh -->
+                <div class="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <div class="text-sm font-medium text-slate-200">Auto-Refresh</div>
+                        <div class="text-xs text-slate-400">Automatically refresh chart data</div>
+                    </div>
+                    <input type="checkbox" checked class="w-5 h-5 accent-amber-500 rounded cursor-pointer">
+                </div>
+
+                <!-- Reset Settings -->
+                <div class="bg-slate-950/60 border border-slate-800/80 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <div class="text-sm font-medium text-slate-200">Reset Settings</div>
+                        <div class="text-xs text-slate-400">Restore all settings to default</div>
+                    </div>
+                    <button onclick="localStorage.clear(); alert('سێتینگەکان ڕێست کران!');" class="bg-red-950/80 hover:bg-red-900 text-red-400 text-xs px-4 py-1.5 rounded-lg border border-red-800 transition">Reset</button>
+                </div>
+
+            </div>
+
+            <!-- خوارەوەی مۆداڵ بۆ پاشەکەوتکردن -->
+            <div class="p-4 border-t border-slate-800 bg-slate-950 flex justify-end gap-2">
+                <button onclick="toggleSettingsModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs transition">پاشگەزبوونەوە</button>
+                <button onclick="saveSettings()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold px-5 py-2 rounded-xl text-xs transition shadow-md">پاشەکەوتکردن (Save)</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // کردنەوە و داخستنی پەنجەرەی مۆداڵی سێتینگ
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.toggle('hidden');
+        }
+
+        const socket = io();
+        socket.on('marketUpdate', (data) => {
+            document.getElementById('priceDisplay').innerText = `$${data.price}`;
+            document.getElementById('signalDisplay').innerText = `💡 نیشانە: ${data.signal}`;
+            document.getElementById('timeDisplay').innerText = `کات: ${data.time}`;
+        });
+
+        async function loadDatabaseRecords() {
+            try {
+                const res = await fetch('/api/database-records');
+                const records = await res.json();
+                const tbody = document.getElementById('dbTableBody');
+                tbody.innerHTML = '';
+                records.forEach(rec => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="p-3 text-slate-400">${rec.time}</td>
+                            <td class="p-3 text-amber-400 font-medium">${rec.source}</td>
+                            <td class="p-3">${rec.value}</td>
+                            <td class="p-3"><span class="bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800">${rec.signal}</span></td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('aiReportBox').innerText = "✅ داتاکانی داتابەیس نوێ کرانەوە و ئامادەن.";
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        window.onload = function() {
+            if(localStorage.getItem('hamza_key')) document.getElementById('apiKey').value = localStorage.getItem('hamza_key');
+            if(localStorage.getItem('hamza_url')) document.getElementById('baseUrl').value = localStorage.getItem('hamza_url');
+            loadDatabaseRecords();
+        }
+
+        function saveSettings() {
+            localStorage.setItem('hamza_key', document.getElementById('apiKey').value);
+            localStorage.setItem('hamza_url', document.getElementById('baseUrl').value);
+            toggleSettingsModal();
+            alert('ڕێکخستنەکان بە سەرکەوتوویی پاشەکەوت کران!');
+        }
+    </script>
+</body>
+</html>

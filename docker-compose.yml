@@ -1,0 +1,47 @@
+# TimescaleDB for the gold-trader stack.
+#
+#   docker compose up -d      start the database
+#   docker compose logs -f db follow startup
+#   docker compose down       stop (data survives in the named volume)
+#   docker compose down -v    stop AND wipe all data
+#
+# The container creates the gold_terminal database on first boot, so no
+# `createdb` step is needed. TimescaleDB ships preinstalled in this image,
+# so `CREATE EXTENSION timescaledb` succeeds without extra work.
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg17
+    container_name: golddb
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: gold_terminal
+      POSTGRES_USER: postgres
+      # Matches DB_PASSWORD in .env. Change both together if you change either.
+      POSTGRES_PASSWORD: "123456"
+      # Keep the server in UTC so candle timestamps line up with the
+      # collectors, which all write tz-aware UTC values.
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - golddb_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gold_terminal"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=timescaledb
+      - -c
+      - max_connections=100
+      - -c
+      - timezone=UTC
+
+volumes:
+  golddb_data:
+    name: golddb_data
