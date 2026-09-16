@@ -15,6 +15,10 @@ whole `public/` directory via `express.static`, so both of these work:
 - `http://localhost:3000/` → redirects to `hamza.html`
 - `http://localhost:3000/hamza.html` → the dashboard
 
+Both files carry the Google Search Console verification meta tag
+(`google-site-verification`) in their `<head>`, so site verification succeeds
+whether the crawler lands on `/` or on `/hamza.html`.
+
 ## Run locally
 
 ```bash
